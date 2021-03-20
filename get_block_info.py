@@ -17,7 +17,7 @@ def flipBytes(hexStr):
   return hexlify(arr).decode("utf-8")
 
 
-def createBlockHash(block):
+def parseBlockInfo(block):
   # This is signed
   ver = int(block["ver"])
   prev = block["prev_block"]
@@ -27,21 +27,22 @@ def createBlockHash(block):
   # These are unsigned ints
   bits = int(block["bits"])
   nonce = int(block["nonce"])
+
+  jsonData = {}
   
-  ver = hexlify(ver.to_bytes(4,byteorder='little', signed=True)).decode("utf-8")
+  jsonData['ver'] = hexlify(ver.to_bytes(4,byteorder='little', signed=True)).decode("utf-8")
   # flip the bytes for the hashes to little endian
-  prev = flipBytes(prev)
-  root = flipBytes(root)
+  jsonData["prev_block"] = flipBytes(prev)
+  jsonData["mrkl_root"] = flipBytes(root)
 
   epochTime = datetime.datetime.strptime(ts,"%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-  ts = hexlify(int(epochTime.timestamp()).to_bytes(4,byteorder='little',signed=True)).decode("utf-8")
+  jsonData["time"] = hexlify(int(epochTime.timestamp()).to_bytes(4,byteorder='little',signed=True)).decode("utf-8")
 
 
-  bits = hexlify(bits.to_bytes(4,byteorder='little')).decode("utf-8")
-  nonce = hexlify(nonce.to_bytes(4,byteorder='little')).decode("utf-8")
+  jsonData['bits'] = hexlify(bits.to_bytes(4,byteorder='little')).decode("utf-8")
+  jsonData['nonce'] = hexlify(nonce.to_bytes(4,byteorder='little')).decode("utf-8")
 
-  print([ver, prev, root, ts, bits, nonce])
-  return double_hash(ver + prev + root + ts + bits + nonce)
+  return jsonData
   
 
 def double_hash(hex_in):
@@ -52,18 +53,26 @@ def double_hash(hex_in):
 r = requests.get("https://api.blockcypher.com/v1/btc/main")
 t = json.loads(r.text)
 r = requests.get(t["latest_url"])
-currBlock = json.loads(r.text)
+# currBlock = json.loads(r.text)
+currBlock = json.loads(requests.get("https://api.blockcypher.com/v1/btc/main/blocks/00000000000022177691274561ebb697c01447998ce579f57212470b6837cf98").text)
 
+jsonMsg = {}
+jsonMsg['blocks'] = []
 
-for i in range(10):
-  print(currBlock["hash"])
-  print(createBlockHash(currBlock))
+for i in range(4):
+  data = parseBlockInfo(currBlock)
+  jsonMsg['blocks'].append(data)
   currBlock = getPrevBlock(currBlock)
-  print("\n")
+  
+print(json.dumps(jsonMsg,indent=4))
 
 '''
+# 2011 reference block
 block = json.loads(requests.get("https://api.blockcypher.com/v1/btc/main/blocks/00000000000000001e8d6829a8a21adc5d38d0a473b144b6765798e61f98bd1d").text)
+# + 3 blocks
+# 00000000000022177691274561ebb697c01447998ce579f57212470b6837cf98
 
-print(createBlockHash(block))
+
+print(parseBlockInfo(block))
 '''
 
