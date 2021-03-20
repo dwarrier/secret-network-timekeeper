@@ -3,41 +3,50 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
-    pub count: i32,
+    pub start_height: u32,
+    pub min_difficulty_bits: u32,
+    pub min_update_length: u32,
+    pub start_hash: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
-    Increment {},
-    Reset { count: i32 },
+    UpdateBlockOffset { blocks: Vec<BlockHeader> }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct BlockHeader {
+    // Passed as hex strings.
+    // i32
+    pub ver: String,
+    // U256
+    pub prev_block: String,
+    // U256
+    pub mrkl_root: String,
+    // u32
+    pub time: String,
+    // u32
+    pub bits: String,
+    // u32
+    pub nonce: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    // GetCount returns the current count as a json-encoded number
-    GetCount {},
+    // GetContractInfo returns the current offset, current hash, start height, and difficulty
+    GetContractInfo {},
 }
 
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct CountResponse {
-    pub count: i32,
-}
-
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct TimeMsg {
-    blocks: Vec<BlockHeader>
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct BlockHeader {
-    pub ver: i32,
-    pub prev_block: String,
-    pub mrkl_root: String,
-    pub time: u32,
-    pub bits: u32,
-    pub nonce: u32,
+pub struct InfoResponse {
+    //u32
+    pub start_height: u32,
+    // U256
+    pub min_difficulty: String,
+    // U256
+    pub curr_hash: String,
+    pub curr_offset: u32
 }
