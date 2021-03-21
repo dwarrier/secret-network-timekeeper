@@ -1,8 +1,9 @@
 [package]
-name = "timekeeper"
+name = "cw-timekeeper"
 version = "0.1.0"
 authors = ["dwarrier"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
 
 exclude = [
   # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
