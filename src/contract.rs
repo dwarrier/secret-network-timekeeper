@@ -134,15 +134,36 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
             // Check the difficulty bits in the header against the
             // difficulty threshold stored by the contract.
             let difficulty_bits = &header[144..144 + 8];
-            // TODO: handle error
-            let parsed = parse_bits(difficulty_bits).unwrap();
+            let parsed_res = parse_bits(difficulty_bits);
+            let parsed = match parsed_res {
+                Ok(res) => {
+                    res
+                },
+                Err(err) => {
+                    return Err(StdError::GenericErr {
+                        msg: format!("Could not parse difficulty bits \"{}\" into u32: {}", difficulty_bits, err),
+                        backtrace: Option::Some(Backtrace::generate()),
+                    });
+                },
+            };
             let block_diff = bits_to_difficulty(parsed.swap_bytes());
             // TODO: handle error here
-            let thresh_diff = U256::from_str_radix(&state.threshold_difficulty, 16).unwrap();
+            let thresh_diff_res = U256::from_str_radix(&state.threshold_difficulty, 16);
+            let thresh_diff = match thresh_diff_res {
+                Ok(res) => {
+                    res
+                },
+                Err(err) => {
+                    return Err(StdError::GenericErr {
+                        msg: format!("Could not convert difficulty bits into U256: {}", err),
+                        backtrace: Option::Some(Backtrace::generate()),
+                    });
+                },
+            };
             if block_diff > thresh_diff {
                 return Err(StdError::GenericErr {
                     msg: format!(
-                        "Block difficulty {} can't be greater than threshold {}",
+                        "Block difficulty {} cannot be greater than threshold {}",
                         format!("{:x}", block_diff),
                         format!("{:x}", thresh_diff)
                     ),
@@ -168,7 +189,18 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
             // Check the difficulty of the target hash against the block difficulty.
             let flipped = flip_bytes_in_str(&prev_hash);
             // TODO: handle error here
-            let t = U256::from_str_radix(&flipped, 16).unwrap();
+            let t_res = U256::from_str_radix(&flipped, 16);
+            let t = match t_res {
+                Ok(res) => {
+                    res
+                },
+                Err(err) => {
+                    return Err(StdError::GenericErr {
+                        msg: format!("Could not convert target hash \"{}\" into U256: {}", flipped, err),
+                        backtrace: Option::Some(Backtrace::generate()),
+                    });
+                },
+            };
             if t > block_diff {
                 return Err(StdError::GenericErr {
                     msg: format!(
@@ -377,8 +409,8 @@ mod tests {
         };
         let res = handle(&mut deps, env, msg);
         match res {
-            Err(StdError::GenericErr { msg, backtrace }) => {
-                assert_eq!(msg, "Block difficulty 44b9f20000000000000000000000000000000000000000000000 can't be greater than threshold 44b9f10000000000000000000000000000000000000000000000");
+            Err(StdError::GenericErr { msg, backtrace: _ }) => {
+                assert_eq!(msg, "Block difficulty 44b9f20000000000000000000000000000000000000000000000 cannot be greater than threshold 44b9f10000000000000000000000000000000000000000000000");
             }
             _ => panic!("Must return an error"),
         }
@@ -397,7 +429,7 @@ mod tests {
         };
         let res = handle(&mut deps, env, msg);
         match res {
-            Err(StdError::GenericErr { msg, backtrace }) => {
+            Err(StdError::GenericErr { msg, backtrace: _ }) => {
                 assert_eq!(
                     msg,
                     "Number of blocks provided (2) is less than minimum required (3)"
@@ -422,7 +454,7 @@ mod tests {
         };
         let res = handle(&mut deps, env, msg);
         match res {
-            Err(StdError::GenericErr { msg, backtrace }) => {
+            Err(StdError::GenericErr { msg, backtrace: _ }) => {
                 assert_eq!(msg, "Encoded block header length is 10, must be 160");
             }
             _ => panic!("Must return an error"),
