@@ -147,7 +147,6 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
                 },
             };
             let block_diff = bits_to_difficulty(parsed.swap_bytes());
-            // TODO: handle error here
             let thresh_diff_res = U256::from_str_radix(&state.threshold_difficulty, 16);
             let thresh_diff = match thresh_diff_res {
                 Ok(res) => {
@@ -188,9 +187,8 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
 
             // Check the difficulty of the target hash against the block difficulty.
             let flipped = flip_bytes_in_str(&prev_hash);
-            // TODO: handle error here
-            let t_res = U256::from_str_radix(&flipped, 16);
-            let t = match t_res {
+            let target_res = U256::from_str_radix(&flipped, 16);
+            let target = match target_res {
                 Ok(res) => {
                     res
                 },
@@ -201,11 +199,11 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
                     });
                 },
             };
-            if t > block_diff {
+            if target > block_diff {
                 return Err(StdError::GenericErr {
                     msg: format!(
                         "Block header hash {} must be less than block difficulty {}",
-                        format!("{:x}", t),
+                        format!("{:x}", target),
                         format!("{:x}", block_diff)
                     ),
                     backtrace: Option::Some(Backtrace::generate()),
@@ -221,20 +219,6 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
     // TODO: what is this for?
     Ok(HandleResponse::default())
 }
-
-// Returns hash of the last block if the chain is valid
-/*
-fn verify_blocks(
-    blocks: Vec<String>,
-    min_update_length: u32,
-    min_difficulty_bits: u32,
-    curr_hash: U256,
-    curr_offset: u32
-) -> Result<Option<String>, dyn Error> {
-
-}
-
- */
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
@@ -354,6 +338,7 @@ mod tests {
         )
     }
 
+    // TODO: add tests
     /*
     #[test]
     fn parse_bits_test() {}
