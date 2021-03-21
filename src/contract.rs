@@ -3,12 +3,12 @@ use cosmwasm_std::{
     StdResult, Storage,
 };
 
-use crate::msg::{InfoResponse, HandleMsg, InitMsg, QueryMsg};
+use crate::msg::{HandleMsg, InfoResponse, InitMsg, QueryMsg};
 use crate::state::{config, config_read, State};
-use sha2::{Digest, Sha256};
 use primitive_types::U256;
+use sha2::{Digest, Sha256};
 extern crate rustc_hex as hex;
-use hex::{ToHex, FromHex};
+use hex::{FromHex, ToHex};
 use snafu::{Backtrace, GenerateBacktrace};
 use std::convert::TryFrom;
 
@@ -39,7 +39,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
-        HandleMsg::UpdateBlockOffset { block_headers: blocks } => try_set_offset(deps, env, blocks)
+        HandleMsg::UpdateBlockOffset {
+            block_headers: blocks,
+        } => try_set_offset(deps, env, blocks),
     }
 }
 
@@ -47,9 +49,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 pub fn double_hash(x: &String) -> String {
     let mut hasher = Sha256::new();
     // write input message
-   let inp: Vec<u8> = x.from_hex().unwrap();
-    let first: [u8;32] = Sha256::digest(&inp[..]).into();
-    let second: [u8;32] = Sha256::digest(&first).into();
+    let inp: Vec<u8> = x.from_hex().unwrap();
+    let first: [u8; 32] = Sha256::digest(&inp[..]).into();
+    let second: [u8; 32] = Sha256::digest(&first).into();
     return second.to_hex();
 }
 
@@ -60,7 +62,6 @@ pub fn parse_bits(bits: &str) -> u32 {
         Ok(num) => num,
         // TODO(dwarri): don't panic here?
         Err(error) => panic!("Could not get int from hex str: {:?}", error),
-
     };
     parsed.swap_bytes();
     return parsed;
@@ -69,15 +70,15 @@ pub fn parse_bits(bits: &str) -> u32 {
 // See https://en.bitcoin.it/wiki/Difficulty.
 // From https://bitcoin.stackexchange.com/questions/30467/what-are-the-equations-to-convert-between-bits-and-difficulty.
 pub fn bits_to_difficulty(n_compact: u32) -> U256 {
-    let n_size:u32 = n_compact >> 24;
-    let mut n_word:u32 = n_compact & 0x007fffff;
-    let mut diff:U256;
+    let n_size: u32 = n_compact >> 24;
+    let mut n_word: u32 = n_compact & 0x007fffff;
+    let mut diff: U256;
     if (n_size <= 3) {
-        n_word >>= 8*(3- n_size);
+        n_word >>= 8 * (3 - n_size);
         diff = U256::from(n_word);
     } else {
         diff = U256::from(n_word);
-        diff <<= 8*(n_size -3);
+        diff <<= 8 * (n_size - 3);
     }
     return diff;
 }
@@ -93,42 +94,54 @@ pub fn try_set_offset<S: Storage, A: Api, Q: Querier>(
     _env: Env,
     blocks: Vec<String>,
 ) -> StdResult<HandleResponse> {
-
     config(&mut deps.storage).update(|mut state| {
         let num_blocks = u32::try_from(blocks.len()).unwrap();
         if state.min_update_length > num_blocks {
-          // return error
-            return Err(
-                StdError::GenericErr {
-                msg: format!("Number of blocks provided ({}) is less than minimum required ({})", num_blocks, state.min_update_length),
-                    backtrace: Option::Some(Backtrace::generate())
-                });
+            // return error
+            return Err(StdError::GenericErr {
+                msg: format!(
+                    "Number of blocks provided ({}) is less than minimum required ({})",
+                    num_blocks, state.min_update_length
+                ),
+                backtrace: Option::Some(Backtrace::generate()),
+            });
         }
         let mut prev_hash = state.curr_hash;
         for header in blocks.iter() {
             if header.len() != BLOCK_HEADER_LEN {
                 return Err(StdError::GenericErr {
-                    msg: format!("Encoded block header length is {}, must be {}", header.len(), BLOCK_HEADER_LEN),
-                    backtrace: Option::Some(Backtrace::generate())
+                    msg: format!(
+                        "Encoded block header length is {}, must be {}",
+                        header.len(),
+                        BLOCK_HEADER_LEN
+                    ),
+                    backtrace: Option::Some(Backtrace::generate()),
                 });
             }
-            let difficulty_bits  = &header[144..144+8];
+            let difficulty_bits = &header[144..144 + 8];
             // TODO: handle error
             let parsed = parse_bits(difficulty_bits);
             let block_diff = bits_to_difficulty(parsed.swap_bytes());
             // TODO: handle error here
             let thresh_diff = U256::from_str_radix(&state.threshold_difficulty, 16).unwrap();
-          if block_diff > thresh_diff {
-              return Err(StdError::GenericErr {
-                  msg: format!("Block difficulty {} can't be greater than threshold {}", format!("{:x}", block_diff), format!("{:x}", thresh_diff)),
-                  backtrace: Option::Some(Backtrace::generate())
-              });
-          }
-            let prev_block = &header[8..8+64];
+            if block_diff > thresh_diff {
+                return Err(StdError::GenericErr {
+                    msg: format!(
+                        "Block difficulty {} can't be greater than threshold {}",
+                        format!("{:x}", block_diff),
+                        format!("{:x}", thresh_diff)
+                    ),
+                    backtrace: Option::Some(Backtrace::generate()),
+                });
+            }
+            let prev_block = &header[8..8 + 64];
             if prev_block != prev_hash {
                 return Err(StdError::GenericErr {
-                    msg: format!("Previous block header hash {} is not equal to value in header {}", prev_hash, prev_block),
-                    backtrace: Option::Some(Backtrace::generate())
+                    msg: format!(
+                        "Previous block header hash {} is not equal to value in header {}",
+                        prev_hash, prev_block
+                    ),
+                    backtrace: Option::Some(Backtrace::generate()),
                 });
             }
 
@@ -136,13 +149,16 @@ pub fn try_set_offset<S: Storage, A: Api, Q: Querier>(
             let flipped = flip_bytes_in_str(&prev_hash);
             // Verify the difficulty of the block hash.
             // TODO: handle error here
-            let t = U256::from_str_radix(&flipped,16).unwrap();
+            let t = U256::from_str_radix(&flipped, 16).unwrap();
             if t > block_diff {
                 return Err(StdError::GenericErr {
-                    msg: format!("Block header hash {} must be less than block difficulty {}", format!("{:x}", t), format!("{:x}", block_diff)),
-                    backtrace: Option::Some(Backtrace::generate())
+                    msg: format!(
+                        "Block header hash {} must be less than block difficulty {}",
+                        format!("{:x}", t),
+                        format!("{:x}", block_diff)
+                    ),
+                    backtrace: Option::Some(Backtrace::generate()),
                 });
-
             }
         }
 
@@ -151,7 +167,6 @@ pub fn try_set_offset<S: Storage, A: Api, Q: Querier>(
         // TODO: handle error
         state.curr_offset += num_blocks;
         Ok(state)
-
     })?;
 
     // TODO: what is this for?
@@ -180,7 +195,6 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::GetContractInfo {} => to_binary(&query_info(deps)?),
     }
 }
-
 
 fn query_info<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<InfoResponse> {
     let state = config_read(&deps.storage).load()?;
@@ -212,24 +226,27 @@ mod tests {
                 // difficulty bits
                 "f2b9441a",
                 // nonce
-                "42a14695"
-                ].concat(),
-                [
+                "42a14695",
+            ]
+            .concat(),
+            [
                 "01000000",
-                 "1dbd981fe6985776b644b173a4d0385ddc1aa2a829688d1e0000000000000000",
+                "1dbd981fe6985776b644b173a4d0385ddc1aa2a829688d1e0000000000000000",
                 "b371c14921b20c2895ed76545c116e0ad70167c5c4952ca201f5d544a26efb53",
-                 "b4f6d74d",
-                 "f2b9441a",
-                 "071a0c81"
-                ].concat(),
-               [
+                "b4f6d74d",
+                "f2b9441a",
+                "071a0c81",
+            ]
+            .concat(),
+            [
                 "01000000",
-                 "85afcb448a3fcde31dc78babd352d9dbde6fcb566777ea33051c000000000000",
+                "85afcb448a3fcde31dc78babd352d9dbde6fcb566777ea33051c000000000000",
                 "ca5b6b96fe65e1a7d50e7c3025a176472ba26d44512de86a6f3e39649330cd2f",
-                 "16f7d74d",
-                 "f2b9441a",
-                 "8574adaf"
-                ].concat(),
+                "16f7d74d",
+                "f2b9441a",
+                "8574adaf",
+            ]
+            .concat(),
         ]
     }
 
@@ -238,14 +255,16 @@ mod tests {
         let mut deps = mock_dependencies(20, &[]);
 
         // This is big endian
-        let start_hash:String = "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000".parse().unwrap();
+        let start_hash: String = "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000"
+            .parse()
+            .unwrap();
         let min_bits = bits_to_difficulty(0x1b0404cbu32);
 
         let msg = InitMsg {
             start_height: 10,
             min_difficulty_bits: 0x1b0404cbu32,
             start_hash: String::from(start_hash.clone()),
-            min_update_length: 24*60/10,
+            min_update_length: 24 * 60 / 10,
         };
         let env = mock_env("creator", &coins(1000, "earth"));
 
@@ -259,7 +278,7 @@ mod tests {
         assert_eq!(start_hash, value.curr_hash);
         assert_eq!(0, value.curr_offset);
         assert_eq!(10, value.start_height);
-        assert_eq!(format!("{:x}",min_bits), value.min_difficulty);
+        assert_eq!(format!("{:x}", min_bits), value.min_difficulty);
     }
 
     #[test]
@@ -271,9 +290,12 @@ mod tests {
         let d = "c7f5d74d";
         let e = "f2b9441a";
         let f = "42a14695";
-        let result:String = [a,b,c,d,e,f].join("");
+        let result: String = [a, b, c, d, e, f].join("");
         let hashed = double_hash(&result);
-        assert_eq!(hashed, "1dbd981fe6985776b644b173a4d0385ddc1aa2a829688d1e0000000000000000")
+        assert_eq!(
+            hashed,
+            "1dbd981fe6985776b644b173a4d0385ddc1aa2a829688d1e0000000000000000"
+        )
     }
 
     #[test]
@@ -282,8 +304,10 @@ mod tests {
         let msg = InitMsg {
             start_height: 10,
             min_difficulty_bits: 0x1b0404cbu32,
-            start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000".parse().unwrap(),
-            min_update_length: 3
+            start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000"
+                .parse()
+                .unwrap(),
+            min_update_length: 3,
         };
 
         let env = mock_env("creator", &coins(2, "token"));
@@ -292,7 +316,7 @@ mod tests {
         // anyone can increment
         let env = mock_env("anyone", &coins(2, "token"));
         let msg = HandleMsg::UpdateBlockOffset {
-            block_headers: valid_blocks()
+            block_headers: valid_blocks(),
         };
         let _res = handle(&mut deps, env, msg).unwrap();
 
@@ -301,7 +325,10 @@ mod tests {
         let value: InfoResponse = from_binary(&res).unwrap();
         assert_eq!(3, value.curr_offset);
         // big-endian: 0000000000001112dff6e2a85b35d4f7ab7005b1b749282eeb1fdf094722601e
-        assert_eq!("1e60224709df1feb2e2849b7b10570abf7d4355ba8e2f6df1211000000000000", value.curr_hash);
+        assert_eq!(
+            "1e60224709df1feb2e2849b7b10570abf7d4355ba8e2f6df1211000000000000",
+            value.curr_hash
+        );
     }
 
     #[test]
@@ -310,8 +337,10 @@ mod tests {
         let msg = InitMsg {
             start_height: 10,
             min_difficulty_bits: 0x1a44b9f1u32,
-            start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000".parse().unwrap(),
-            min_update_length: 3
+            start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000"
+                .parse()
+                .unwrap(),
+            min_update_length: 3,
         };
 
         let env = mock_env("creator", &coins(2, "token"));
@@ -320,7 +349,7 @@ mod tests {
         // anyone can increment
         let env = mock_env("anyone", &coins(2, "token"));
         let msg = HandleMsg::UpdateBlockOffset {
-            block_headers: valid_blocks()
+            block_headers: valid_blocks(),
         };
         let res = handle(&mut deps, env, msg);
         match res {
@@ -337,8 +366,10 @@ mod tests {
         let msg = InitMsg {
             start_height: 10,
             min_difficulty_bits: 0x1a44b9f2u32,
-            start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000".parse().unwrap(),
-            min_update_length: 3
+            start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000"
+                .parse()
+                .unwrap(),
+            min_update_length: 3,
         };
 
         let env = mock_env("creator", &coins(2, "token"));
@@ -347,12 +378,15 @@ mod tests {
         // anyone can increment
         let env = mock_env("anyone", &coins(2, "token"));
         let msg = HandleMsg::UpdateBlockOffset {
-            block_headers: valid_blocks().split_last().unwrap().1.to_vec()
+            block_headers: valid_blocks().split_last().unwrap().1.to_vec(),
         };
         let res = handle(&mut deps, env, msg);
         match res {
-            Err(StdError::GenericErr { msg ,backtrace}) => {
-                assert_eq!(msg, "Number of blocks provided (2) is less than minimum required (3)");
+            Err(StdError::GenericErr { msg, backtrace }) => {
+                assert_eq!(
+                    msg,
+                    "Number of blocks provided (2) is less than minimum required (3)"
+                );
             }
             _ => panic!("Must return an error"),
         }
@@ -364,8 +398,10 @@ mod tests {
         let msg = InitMsg {
             start_height: 10,
             min_difficulty_bits: 0x1a44b9f2u32,
-            start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000".parse().unwrap(),
-            min_update_length: 3
+            start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000"
+                .parse()
+                .unwrap(),
+            min_update_length: 3,
         };
 
         let env = mock_env("creator", &coins(2, "token"));
@@ -376,11 +412,11 @@ mod tests {
         let mut partial_blocks = valid_blocks().split_last().unwrap().1.to_vec();
         partial_blocks.push("bad_header".to_string());
         let msg = HandleMsg::UpdateBlockOffset {
-            block_headers: partial_blocks
+            block_headers: partial_blocks,
         };
         let res = handle(&mut deps, env, msg);
         match res {
-            Err(StdError::GenericErr { msg ,backtrace}) => {
+            Err(StdError::GenericErr { msg, backtrace }) => {
                 assert_eq!(msg, "Encoded block header length is 10, must be 160");
             }
             _ => panic!("Must return an error"),

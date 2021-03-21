@@ -20,7 +20,7 @@ pub enum HandleMsg {
     // 4) time: u32
     // 5) bits: u32
     // 6) nonce: u32
-    UpdateBlockOffset { block_headers: Vec<String> }
+    UpdateBlockOffset { block_headers: Vec<String> },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -39,5 +39,5 @@ pub struct InfoResponse {
     pub min_difficulty: String,
     // U256
     pub curr_hash: String,
-    pub curr_offset: u32
+    pub curr_offset: u32,
 }

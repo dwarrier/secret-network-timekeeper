@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use mysimplecounter::msg::{InitMsg, InfoResponse, HandleMsg, QueryMsg};
+use mysimplecounter::msg::{HandleMsg, InfoResponse, InitMsg, QueryMsg};
 use mysimplecounter::state::State;
 
 fn main() {
