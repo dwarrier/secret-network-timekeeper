@@ -1,5 +1,5 @@
 [package]
-name = "mysimplecounter"
+name = "timekeeper"
 version = "0.1.0"
 authors = ["dwarrier"]
 edition = "2018"

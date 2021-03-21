@@ -10,7 +10,7 @@ use crate::state::{config, config_read, State};
 use primitive_types::U256;
 use sha2::{Digest, Sha256};
 use hex::{FromHex, ToHex};
-use snafu::{Backtrace, GenerateBacktrace, Error};
+use snafu::{Backtrace, GenerateBacktrace};
 use std::convert::TryFrom;
 use std::num::ParseIntError;
 
@@ -76,7 +76,7 @@ pub fn bits_to_difficulty(n_compact: u32) -> U256 {
     let n_size: u32 = n_compact >> 24;
     let mut n_word: u32 = n_compact & 0x007fffff;
     let mut diff: U256;
-    if (n_size <= 3) {
+    if n_size <= 3 {
         n_word >>= 8 * (3 - n_size);
         diff = U256::from(n_word);
     } else {
