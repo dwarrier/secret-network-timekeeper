@@ -1,25 +1,23 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "InitMsg",
+  "title": "InfoResponse",
   "type": "object",
   "required": [
-    "min_difficulty_bits",
-    "min_update_length",
-    "start_hash",
+    "curr_hash",
+    "curr_offset",
+    "min_difficulty",
     "start_height"
   ],
   "properties": {
-    "min_difficulty_bits": {
+    "curr_hash": {
+      "type": "string"
+    },
+    "curr_offset": {
       "type": "integer",
       "format": "uint32",
       "minimum": 0.0
     },
-    "min_update_length": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
-    },
-    "start_hash": {
+    "min_difficulty": {
       "type": "string"
     },
     "start_height": {

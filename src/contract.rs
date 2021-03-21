@@ -360,7 +360,6 @@ mod tests {
 
     #[test]
     fn bad_headers() {
-
         let mut deps = mock_dependencies(20, &coins(2, "token"));
         let msg = InitMsg {
             start_height: 10,
@@ -386,8 +385,6 @@ mod tests {
             }
             _ => panic!("Must return an error"),
         }
-
-
     }
 
     /*

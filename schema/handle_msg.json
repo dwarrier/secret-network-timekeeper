@@ -5,29 +5,20 @@
     {
       "type": "object",
       "required": [
-        "increment"
+        "update_block_offset"
       ],
       "properties": {
-        "increment": {
-          "type": "object"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "reset"
-      ],
-      "properties": {
-        "reset": {
+        "update_block_offset": {
           "type": "object",
           "required": [
-            "count"
+            "block_headers"
           ],
           "properties": {
-            "count": {
-              "type": "integer",
-              "format": "int32"
+            "block_headers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         }

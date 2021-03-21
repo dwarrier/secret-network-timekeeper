@@ -3,16 +3,37 @@
   "title": "State",
   "type": "object",
   "required": [
-    "count",
-    "owner"
+    "curr_hash",
+    "curr_offset",
+    "min_update_length",
+    "owner",
+    "start_height",
+    "threshold_difficulty"
   ],
   "properties": {
-    "count": {
+    "curr_hash": {
+      "type": "string"
+    },
+    "curr_offset": {
       "type": "integer",
-      "format": "int32"
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "min_update_length": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
     },
     "owner": {
       "$ref": "#/definitions/CanonicalAddr"
+    },
+    "start_height": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "threshold_difficulty": {
+      "type": "string"
     }
   },
   "definitions": {

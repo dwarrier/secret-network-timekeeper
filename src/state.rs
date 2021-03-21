@@ -7,7 +7,7 @@ use primitive_types::U256;
 
 pub static CONFIG_KEY: &[u8] = b"config";
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq,JsonSchema)]
 pub struct State {
     // The height of the start block hash.
     pub start_height: u32,
