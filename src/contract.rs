@@ -7,9 +7,9 @@ extern crate rustc_hex as hex;
 use crate::msg::{HandleMsg, InfoResponse, InitMsg, QueryMsg};
 use crate::state::{config, config_read, State};
 
+use hex::{FromHex, ToHex};
 use primitive_types::U256;
 use sha2::{Digest, Sha256};
-use hex::{FromHex, ToHex};
 use snafu::{Backtrace, GenerateBacktrace};
 use std::convert::TryFrom;
 use std::num::ParseIntError;
@@ -45,7 +45,28 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::UpdateBlockOffset {
             block_headers: blocks,
         } => try_update_offset(deps, env, blocks),
+        HandleMsg::ResetState { new_state } => try_reset_state(deps, env, new_state),
     }
+}
+
+pub fn try_reset_state<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    msg: InitMsg,
+) -> StdResult<HandleResponse> {
+    let sender_address_raw = deps.api.canonical_address(&env.message.sender)?;
+    config(&mut deps.storage).update(|mut state| {
+        if sender_address_raw != state.owner {
+            return Err(StdError::Unauthorized { backtrace: None });
+        }
+        state.curr_hash = msg.start_hash;
+        state.curr_offset = 0;
+        state.start_height = msg.start_height;
+        state.threshold_difficulty = format!("{:x}", bits_to_difficulty(msg.min_difficulty_bits));
+        state.min_update_length = msg.min_update_length;
+        Ok(state)
+    })?;
+    Ok(HandleResponse::default())
 }
 
 // Double hashes a hex string and returns a hex string.
@@ -101,7 +122,6 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
     headers: Vec<String>,
 ) -> StdResult<HandleResponse> {
     config(&mut deps.storage).update(|mut state| {
-
         // Check that the number of block header hashes passed in is large enough.
         let num_headers = u32::try_from(headers.len()).unwrap();
         if state.min_update_length > num_headers {
@@ -136,28 +156,27 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
             let difficulty_bits = &header[144..144 + 8];
             let parsed_res = parse_bits(difficulty_bits);
             let parsed = match parsed_res {
-                Ok(res) => {
-                    res
-                },
+                Ok(res) => res,
                 Err(err) => {
                     return Err(StdError::GenericErr {
-                        msg: format!("Could not parse difficulty bits \"{}\" into u32: {}", difficulty_bits, err),
+                        msg: format!(
+                            "Could not parse difficulty bits \"{}\" into u32: {}",
+                            difficulty_bits, err
+                        ),
                         backtrace: Option::Some(Backtrace::generate()),
                     });
-                },
+                }
             };
             let block_diff = bits_to_difficulty(parsed.swap_bytes());
             let thresh_diff_res = U256::from_str_radix(&state.threshold_difficulty, 16);
             let thresh_diff = match thresh_diff_res {
-                Ok(res) => {
-                    res
-                },
+                Ok(res) => res,
                 Err(err) => {
                     return Err(StdError::GenericErr {
                         msg: format!("Could not convert difficulty bits into U256: {}", err),
                         backtrace: Option::Some(Backtrace::generate()),
                     });
-                },
+                }
             };
             if block_diff > thresh_diff {
                 return Err(StdError::GenericErr {
@@ -189,15 +208,16 @@ pub fn try_update_offset<S: Storage, A: Api, Q: Querier>(
             let flipped = flip_bytes_in_str(&prev_hash);
             let target_res = U256::from_str_radix(&flipped, 16);
             let target = match target_res {
-                Ok(res) => {
-                    res
-                },
+                Ok(res) => res,
                 Err(err) => {
                     return Err(StdError::GenericErr {
-                        msg: format!("Could not convert target hash \"{}\" into U256: {}", flipped, err),
+                        msg: format!(
+                            "Could not convert target hash \"{}\" into U256: {}",
+                            flipped, err
+                        ),
                         backtrace: Option::Some(Backtrace::generate()),
                     });
-                },
+                }
             };
             if target > block_diff {
                 return Err(StdError::GenericErr {
@@ -242,7 +262,7 @@ fn query_info<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, MockStorage, MockApi, MockQuerier};
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{coins, from_binary, StdError};
     use std::io::Empty;
 
@@ -259,7 +279,7 @@ mod tests {
 
     fn test_block_headers() -> Vec<String> {
         // Values are encoded as hex strings in little endian format.
-       vec![
+        vec![
             [
                 // version
                 "01000000",
@@ -340,6 +360,9 @@ mod tests {
 
     // TODO: add tests
     /*
+    #[test]
+    fn reset() {}
+
     #[test]
     fn parse_bits_test() {}
 

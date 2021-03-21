@@ -21,6 +21,7 @@ pub enum HandleMsg {
     // 5) bits: u32
     // 6) nonce: u32
     UpdateBlockOffset { block_headers: Vec<String> },
+    ResetState { new_state: InitMsg },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
