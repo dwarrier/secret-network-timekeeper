@@ -12,24 +12,15 @@ pub struct InitMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
-    UpdateBlockOffset { blocks: Vec<BlockHeader> }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct BlockHeader {
-    // Passed as hex strings.
-    // i32
-    pub ver: String,
-    // U256
-    pub prev_block: String,
-    // U256
-    pub mrkl_root: String,
-    // u32
-    pub time: String,
-    // u32
-    pub bits: String,
-    // u32
-    pub nonce: String,
+    // Each block header should be a 160 character hex string (80 bytes),
+    // with the following concatenated together in order in little endian format:
+    // 1) ver: i32
+    // 2) prev_block: U256
+    // 3) mrkl_root: U256
+    // 4) time: u32
+    // 5) bits: u32
+    // 6) nonce: u32
+    UpdateBlockOffset { block_headers: Vec<String> }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
