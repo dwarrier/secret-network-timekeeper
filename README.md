@@ -7,9 +7,9 @@ Timekeeper is a contract that uses the Bitcoin network to act as a time referenc
 
 The contract stores a start block height, along with a current offset and a block hash.
 
-This offset is updated by doing [verification](https://en.bitcoin.it/wiki/Hashcash) on block header values. Anyone who updates it must provide valid consecutive block headers, where the first header provided references the current block hash.
+This offset and block hash are updated after doing [verification](https://en.bitcoin.it/wiki/Hashcash) on block header values. The user performing the update must provide valid consecutive block headers, where the first header provided references the current block hash.
 
-In order to make the process more secure, we require a minimum number of headers to be provided in a single call. We also require block header difficulty values to be harder than a threshold difficulty, and check the difficulty against the hash computed from the header values.
+In order to make the process more secure, we require a minimum number of headers to be provided in a single call. We also require block header difficulty values to be harder than a threshold difficulty, and check the declared block difficulty against the hash computed from the header values.
 
 ## Status
 The contract is currently in development and can be tested in a local dev environment.
