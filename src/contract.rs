@@ -256,6 +256,7 @@ fn query_info<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResu
         min_difficulty: state.threshold_difficulty,
         curr_hash: state.curr_hash,
         curr_offset: state.curr_offset,
+        min_update_length: state.min_update_length,
     })
 }
 
@@ -268,7 +269,7 @@ mod tests {
 
     fn default_init_msg() -> InitMsg {
         InitMsg {
-            start_height: 10,
+            start_height: 125551,
             min_difficulty_bits: 0x1b0404cbu32,
             start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000"
                 .parse()
@@ -337,8 +338,9 @@ mod tests {
         let value: InfoResponse = from_binary(&res).unwrap();
         assert_eq!(start_hash, value.curr_hash);
         assert_eq!(0, value.curr_offset);
-        assert_eq!(10, value.start_height);
+        assert_eq!(125551, value.start_height);
         assert_eq!(format!("{:x}", min_bits), value.min_difficulty);
+        assert_eq!(3, value.min_update_length)
     }
 
     #[test]
@@ -361,9 +363,6 @@ mod tests {
     // TODO: add tests
     /*
     #[test]
-    fn reset() {}
-
-    #[test]
     fn parse_bits_test() {}
 
     #[test]
@@ -377,7 +376,7 @@ mod tests {
         let env = mock_env("creator", &coins(2, "token"));
         let _res = init(&mut deps, env, default_init_msg()).unwrap();
 
-        // anyone can increment
+        // anyone can update
         let env = mock_env("anyone", &coins(2, "token"));
         let msg = HandleMsg::UpdateBlockOffset {
             block_headers: test_block_headers(),
@@ -396,10 +395,68 @@ mod tests {
     }
 
     #[test]
+    fn reset() {
+        let mut deps = mock_dependencies(20, &coins(2, "token"));
+
+        let env = mock_env("creator", &coins(2, "token"));
+        let _res = init(&mut deps, env, default_init_msg()).unwrap();
+
+        // anyone can update
+        let env = mock_env("anyone", &coins(2, "token"));
+        let msg = HandleMsg::UpdateBlockOffset {
+            block_headers: test_block_headers(),
+        };
+        let _res = handle(&mut deps, env, msg).unwrap();
+
+        // should increase offset by 3
+        let res = query(&deps, QueryMsg::GetContractInfo {}).unwrap();
+        let value: InfoResponse = from_binary(&res).unwrap();
+        assert_eq!(3, value.curr_offset);
+        // big-endian: 0000000000001112dff6e2a85b35d4f7ab7005b1b749282eeb1fdf094722601e
+        assert_eq!(
+            "1e60224709df1feb2e2849b7b10570abf7d4355ba8e2f6df1211000000000000",
+            value.curr_hash
+        );
+
+        // not anyone can reset
+        let unauth_env = mock_env("anyone", &coins(2, "token"));
+        let msg = HandleMsg::ResetState {
+            new_state: default_init_msg(),
+        };
+        let res = handle(&mut deps, unauth_env, msg);
+        match res {
+            Err(StdError::Unauthorized { .. }) => {}
+            _ => panic!("Must return unauthorized error"),
+        }
+
+        // only the original creator can reset the state
+        let auth_env = mock_env("creator", &coins(2, "token"));
+        let mut msg = default_init_msg();
+        msg.min_difficulty_bits = 0x11deadbfu32;
+        msg.min_update_length = 42;
+        msg.start_height = 42;
+        let msg = HandleMsg::ResetState { new_state: msg };
+        let _res = handle(&mut deps, auth_env, msg).unwrap();
+
+        // should now be the original values
+        let res = query(&deps, QueryMsg::GetContractInfo {}).unwrap();
+        let value: InfoResponse = from_binary(&res).unwrap();
+        assert_eq!(0, value.curr_offset);
+        // big-endian: 0000000000001112dff6e2a85b35d4f7ab7005b1b749282eeb1fdf094722601e
+        assert_eq!(
+            "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000",
+            value.curr_hash
+        );
+        assert_eq!(42, value.min_update_length);
+        assert_eq!(42, value.start_height);
+        assert_eq!("5eadbf0000000000000000000000000000", value.min_difficulty);
+    }
+
+    #[test]
     fn min_difficulty_enforced() {
         let mut deps = mock_dependencies(20, &coins(2, "token"));
         let msg = InitMsg {
-            start_height: 10,
+            start_height: 125551,
             min_difficulty_bits: 0x1a44b9f1u32,
             start_hash: "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000"
                 .parse()
@@ -410,7 +467,7 @@ mod tests {
         let env = mock_env("creator", &coins(2, "token"));
         let _res = init(&mut deps, env, msg).unwrap();
 
-        // anyone can increment
+        // anyone can update
         let env = mock_env("anyone", &coins(2, "token"));
         let msg = HandleMsg::UpdateBlockOffset {
             block_headers: test_block_headers(),

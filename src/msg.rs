@@ -41,4 +41,5 @@ pub struct InfoResponse {
     // U256
     pub curr_hash: String,
     pub curr_offset: u32,
+    pub min_update_length: u32,
 }
