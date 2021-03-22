@@ -360,7 +360,7 @@ mod tests {
         )
     }
 
-    // TODO: add tests
+    // TODO: add more tests
     /*
     #[test]
     fn parse_bits_test() {}
