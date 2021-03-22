@@ -3,8 +3,8 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use timekeeper::msg::{HandleMsg, InfoResponse, InitMsg, QueryMsg};
-use timekeeper::state::State;
+use cw_timekeeper::msg::{HandleMsg, InfoResponse, InitMsg, QueryMsg};
+use cw_timekeeper::state::State;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();

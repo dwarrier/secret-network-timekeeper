@@ -23,6 +23,56 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "reset_state"
+      ],
+      "properties": {
+        "reset_state": {
+          "type": "object",
+          "required": [
+            "new_state"
+          ],
+          "properties": {
+            "new_state": {
+              "$ref": "#/definitions/InitMsg"
+            }
+          }
+        }
+      }
     }
-  ]
+  ],
+  "definitions": {
+    "InitMsg": {
+      "type": "object",
+      "required": [
+        "min_difficulty_bits",
+        "min_update_length",
+        "start_hash",
+        "start_height"
+      ],
+      "properties": {
+        "min_difficulty_bits": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "min_update_length": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "start_hash": {
+          "type": "string"
+        },
+        "start_height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
 }

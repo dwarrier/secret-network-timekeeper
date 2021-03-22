@@ -6,6 +6,7 @@
     "curr_hash",
     "curr_offset",
     "min_difficulty",
+    "min_update_length",
     "start_height"
   ],
   "properties": {
@@ -19,6 +20,11 @@
     },
     "min_difficulty": {
       "type": "string"
+    },
+    "min_update_length": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
     },
     "start_height": {
       "type": "integer",
