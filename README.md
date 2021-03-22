@@ -30,7 +30,7 @@ Instantiate the contract with a short minimum update length of 3 blocks:
 ```shell
 INIT='{"start_height": 125551, "min_difficulty_bits": 453248203, "start_hash": "81cd02ab7e569e8bcd9317e2fe99f2de44d49ab2b8851ba4a308000000000000", "min_update_length": 3}'
 CODE_ID=1
-secretcli tx compute instantiate $CODE_ID "$INIT" --from a --label "time keeper 1" -y --keyring-backend test
+secretcli tx compute instantiate $CODE_ID "$INIT" --from a --label "timekeeper 1" -y --keyring-backend test
 ```
 Set the contract address:
 ```shell
